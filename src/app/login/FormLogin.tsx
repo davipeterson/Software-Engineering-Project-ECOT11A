@@ -8,7 +8,7 @@ export function FormLogin() {
 
   return (
     <form action={acao} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-900">
         E-mail
         <input
           name="email"
@@ -16,17 +16,17 @@ export function FormLogin() {
           required
           autoComplete="username"
           defaultValue={estado.email}
-          className="rounded border border-zinc-300 px-3 py-2 font-normal"
+          className="rounded border border-zinc-400 bg-white px-3 py-2 font-normal text-zinc-900"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-900">
         Senha
         <input
           name="senha"
           type="password"
           required
           autoComplete="current-password"
-          className="rounded border border-zinc-300 px-3 py-2 font-normal"
+          className="rounded border border-zinc-400 bg-white px-3 py-2 font-normal text-zinc-900"
         />
       </label>
       {estado.erro && (
