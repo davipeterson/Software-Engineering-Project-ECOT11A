@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Setor {
+  ESTOQUE
+  VENDAS
+  FINANCEIRO
+  RH
+  DIRETORIA
+}
+
+enum TipoMovimentacao {
+  ENTRADA
+  SAIDA_MANUAL
+  SAIDA_VENDA
+}
+
+enum StatusPedido {
+  EM_ELABORACAO
+  RASCUNHO
+  EM_VALIDACAO
+  CONFIRMADO
+  CANCELADO
+}
+
+enum TipoConta {
+  PAGAR
+  RECEBER
+}
+
+enum StatusConta {
+  ABERTA
+  PAGA
+  CANCELADA
+}
+
+enum TipoSolicitacao {
+  CORRECAO
+  EXCLUSAO
+}
+
+enum StatusSolicitacao {
+  ABERTA
+  CONCLUIDA
+}
+
+enum TitularTipo {
+  FUNCIONARIO
+  CLIENTE
+}
+
+model Usuario {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  email           String    @unique
+  senhaHash       String
+  setor           Setor
+  ativo           Boolean   @default(true)
+  consentimentoEm DateTime?
+  criadoEm        DateTime  @default(now())
+
+  movimentacoes MovimentacaoEstoque[]
+  pedidos       PedidoVenda[]
+  contas        Conta[]
+  logs          LogAuditoria[]
+}
+
+model Produto {
+  id               Int     @id @default(autoincrement())
+  codigo           String  @unique
+  nome             String
+  categoria        String
+  quantidadeAtual  Int     @default(0)
+  quantidadeMinima Int     @default(0)
+  preco            Decimal @db.Decimal(12, 2)
+  ativo            Boolean @default(true)
+
+  movimentacoes MovimentacaoEstoque[]
+  itensPedido   ItemPedido[]
+
+  @@index([nome])
+}
+
+model MovimentacaoEstoque {
+  id            Int              @id @default(autoincrement())
+  tipo          TipoMovimentacao
+  quantidade    Int
+  justificativa String?
+  dataHora      DateTime         @default(now())
+  produtoId     Int
+  usuarioId     Int
+
+  produto Produto @relation(fields: [produtoId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([produtoId, dataHora])
+}
+
+model Cliente {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  email           String?
+  consentimentoEm DateTime?
+  anonimizadoEm   DateTime?
+
+  pedidos PedidoVenda[]
+}
+
+model PedidoVenda {
+  id           Int          @id @default(autoincrement())
+  status       StatusPedido @default(RASCUNHO)
+  valorTotal   Decimal      @default(0) @db.Decimal(12, 2)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+  usuarioId    Int
+  clienteId    Int?
+
+  usuario Usuario      @relation(fields: [usuarioId], references: [id])
+  cliente Cliente?     @relation(fields: [clienteId], references: [id])
+  itens   ItemPedido[]
+  contas  Conta[]
+
+  @@index([usuarioId, status])
+}
+
+model ItemPedido {
+  id            Int     @id @default(autoincrement())
+  quantidade    Int
+  precoUnitario Decimal @db.Decimal(12, 2)
+  pedidoId      Int
+  produtoId     Int
+
+  pedido  PedidoVenda @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produto Produto     @relation(fields: [produtoId], references: [id])
+
+  @@unique([pedidoId, produtoId])
+}
+
+model Conta {
+  id         Int         @id @default(autoincrement())
+  tipo       TipoConta
+  descricao  String
+  valor      Decimal     @db.Decimal(12, 2)
+  vencimento DateTime    @db.Date
+  status     StatusConta @default(ABERTA)
+  pagaEm     DateTime?
+  pedidoId   Int?
+  usuarioId  Int
+
+  pedido  PedidoVenda? @relation(fields: [pedidoId], references: [id])
+  usuario Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@index([status, vencimento])
+}
+
+model Funcionario {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  cargo           String
+  setor           Setor
+  dataAdmissao    DateTime  @db.Date
+  email           String?
+  consentimentoEm DateTime?
+  ativo           Boolean   @default(true)
+  anonimizadoEm   DateTime?
+}
+
+model SolicitacaoLGPD {
+  id          Int               @id @default(autoincrement())
+  titularTipo TitularTipo
+  titularId   Int
+  tipo        TipoSolicitacao
+  status      StatusSolicitacao @default(ABERTA)
+  descricao   String
+  criadaEm    DateTime          @default(now())
+  prazoLimite DateTime
+  concluidaEm DateTime?
+}
+
+model LogAuditoria {
+  id            Int      @id @default(autoincrement())
+  entidade      String
+  entidadeId    Int
+  acao          String
+  valorAnterior String?
+  valorNovo     String?
+  dataHora      DateTime @default(now())
+  usuarioId     Int
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([entidade, entidadeId])
+}
